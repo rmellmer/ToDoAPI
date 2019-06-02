@@ -5,6 +5,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 const uuidv1 = require('uuid/v1');
 
 var express = require("express");
+const sls = require('serverless-http');
 var bodyParser = require('body-parser')
 var cors = require('cors')
 
@@ -36,7 +37,9 @@ app.get("/api/todos", (req, res, next) => {
 
     const docClient = new AWS.DynamoDB.DocumentClient();
     const params = {
-        TableName: config.aws_table_name
+        TableName: config.aws_table_name,
+        KeyConditionExpression: 'timestamp > 0',
+        ScanIndexForward:true
     };
     docClient.scan(params, function(err, data) {
         if (err) {
@@ -64,14 +67,14 @@ app.get("/api/todo", (req, res, next) => {
         AWS.config.update(config.aws_remote_config);
     }
 
-    const todoId = req.query.id;
+    const todoID = req.query.id;
     const docClient = new AWS.DynamoDB.DocumentClient();
 
     const params = {
         TableName: config.aws_table_name,
-        KeyConditionExpression: 'todoId = :i',
+        KeyConditionExpression: 'todoID = :i',
         ExpressionAttributeValues: {
-            ':i': todoId
+            ':i': todoID
         }
     }
 
@@ -104,14 +107,14 @@ app.post('/api/todo', (req, res, next) => {
 
     const { message } = req.body;
 
-    // Not actually unique and can create problems.
-    const todoId = uuidv1();
+    // Not actually unique, but should suffice for this use case
+    const todoID = uuidv1();
 
     const docClient = new AWS.DynamoDB.DocumentClient();
     const params = {
         TableName: config.aws_table_name,
         Item: {
-            todoId: todoId,
+            todoID: todoID,
             timestamp: +new Date,
             message: message
         }
@@ -127,7 +130,7 @@ app.post('/api/todo', (req, res, next) => {
             res.send({
                 success: true,
                 message: 'Added todo',
-                todoId: todoId
+                todoID: todoID
             });
         }
     });
@@ -141,14 +144,16 @@ app.delete("/api/todo", (req, res, next) => {
         AWS.config.update(config.aws_remote_config);
     }
 
-    const todoId = req.query.id;
+    const todoID = req.query.todoID;
+    const timestamp = req.query.timestamp;
 
     const docClient = new AWS.DynamoDB.DocumentClient();
 
     const params = {
         TableName: config.aws_table_name,
         Key: {
-            "todoId":todoId,
+            "todoID":todoID,
+            "timestamp":Number(timestamp)
         }
     }
 
@@ -160,12 +165,13 @@ app.delete("/api/todo", (req, res, next) => {
             });
         }
         else {
-            const { Items } = data;
             res.send({
                 success: true,
                 message: 'Deleted todo',
-                todoId: todoId
+                todoID: todoID
             });
         }
     });
 })
+
+module.exports.server = sls(app);

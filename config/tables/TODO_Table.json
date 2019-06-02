@@ -2,14 +2,22 @@
   "TableName": "ToDos",
   "KeySchema": [
     {
-      "AttributeName": "todoId",
+      "AttributeName": "todoID",
       "KeyType": "HASH"
+    },
+    {
+      "AttributeName": "timestamp",
+      "KeyType": "RANGE"
     }
   ],
   "AttributeDefinitions": [
     {
-      "AttributeName": "todoId",
+      "AttributeName": "todoID",
       "AttributeType": "S"
+    },
+    {
+      "AttributeName": "timestamp",
+      "AttributeType": "N"
     }
   ],
   "ProvisionedThroughput": {
